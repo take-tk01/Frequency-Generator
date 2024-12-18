@@ -1,0 +1,15 @@
+{
+  "name": "frequency_generator",
+  "version": "1.0.0",
+  "description": "Frequency Generator",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "take-tk01",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

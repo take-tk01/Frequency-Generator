@@ -1,0 +1,221 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta name="robots" content="noindex,nofollow">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Frequency Generator</title>
+        <style>
+            html, body{
+                margin: 0px;
+                padding: 0px;
+                background: #000000;
+                color: #FFFFFF;
+            }
+            body{
+                font-size: 50px
+            }
+            body input{
+                min-height: 50px;
+                font-size: 50px;
+                min-width: 50px;
+                max-width: 200px;
+                text-align:center;
+            }
+            .hzd {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                text-align: center;
+                z-index: 50;
+            }
+            .play {
+                color: #00FF00;
+            }
+            .stop {
+                color: #FF0000;
+            }
+            button {
+                height: 30px;
+                font-size: 15px;
+            }
+            .title{
+                width: 90%;
+                position: absolute;
+                top: 25%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                text-align: center;
+                z-index: 50;
+            }
+            .btnapply{
+                width: 200px;
+                position: absolute;
+                top: 65%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                text-align: center;
+                z-index: 50;
+            }
+            select{
+                width: 200px;
+                position: absolute;
+                top: 60%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                text-align: center;
+                height: 30px;
+                font-size: 15px;
+                text-align:center;
+                z-index: 50;
+            }
+            .ctrlbtn{
+                width: 200px;
+                position: absolute;
+                top: 70%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                text-align: center;
+                z-index: 50;
+            }
+            #waveform{
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                z-index: 10;
+            }
+        </style>
+        <script>
+            document.addEventListener('DOMContentLoaded',function(){
+                document.getElementById('hzd').innerHTML = `<div class="hzd"><input type="number" id="hzv" value="1" pattern="^[0-9]+$" required>Hz</div>`;
+                document.getElementById('ctrl').innerHTML = `<button onclick="javascript:start(1);" class="ctrlbtn"><span class="play">▶</span>Start</button>`;
+                draw();
+                start(1);
+                apply();
+                stop();
+                canvasResize();
+            })
+            function start(x){
+                try{
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    ana = new AnalyserNode(audioCtx);
+                    type = document.getElementById('type').value;
+                    var bufferSize = 8192;
+                    var numberOfInputChannels = 1;
+                    var numberOfOutputChannels = 1;
+                    oscillator = audioCtx.createOscillator(bufferSize, numberOfInputChannels, numberOfOutputChannels);
+                    ana.fftSize = 2048;
+                    anabufferLength = ana.frequencyBinCount;
+                    anadataArray = new Uint8Array(anabufferLength);
+                    oscillator.frequency.setValueAtTime(x, audioCtx.currentTime);
+                    oscillator.connect(ana);
+                    oscillator.type = type;
+                    ana.connect(audioCtx.destination);
+                    document.querySelector('button').addEventListener('click', function() { if (audioContext.state === 'suspended') { audioContext.resume().then(() => {   console.log('AudioContext resumed'); }).catch((error) => { console.error('Error resuming AudioContext:', error); }); } });
+                    oscillator.start();
+                    document.getElementById('ocs').value = 1;
+                    console.log(`Start with ${x}Hz`);
+                    document.getElementById('ctrl').innerHTML = `<button onclick="javascript:stop();" class="ctrlbtn"><span class="stop">■</span>Stop</button>`;
+                    drawcanvas = document.getElementById("waveform");
+                    drawcanvasCtx = drawcanvas.getContext('2d');
+                    drawcanvasCtx.clearRect(0, 0, cwidth, cheight);
+                }catch(e){
+                    alert(e);
+                }
+            }
+            function stop(x){
+                try{
+                    oscillator.stop();
+                    oscillator.disconnect();
+                    document.getElementById('ocs').value = 0;
+                    console.log(`Stopping`);
+                    let hzv = document.getElementById('hzv');
+                    document.getElementById('ctrl').innerHTML = `<button onclick="javascript:start(${hzv.value});" class="ctrlbtn"><span class="play">▶</span>Start</button>`;
+                    oscillator.buffer = null;
+                }catch(e){
+                    alert(e);
+                }
+            }
+            function apply(){
+                try{
+                    setTimeout(function() {
+                        let hzv = document.getElementById('hzv');
+                        let ocs = document.getElementById('ocs').value;
+                        let numocs = Number(ocs);
+                        let check = Number(hzv.value);
+                        if(check > 20000){
+                            document.getElementById('hzd').innerHTML = `<div class="hzd"><input type="number" id="hzv" value="20000" pattern="^[0-9]+$" required>Hz</div>`;
+                        }else if(check < 1){
+                            document.getElementById('hzd').innerHTML = `<div class="hzd"><input type="number" id="hzv" value="1" pattern="^[0-9]+$" required>Hz</div>`;
+                        }else{
+                            hzv.value = check;
+                            document.getElementById('hzd').innerHTML = `<div class="hzd"><input type="number" id="hzv" value="${check}" pattern="^[0-9]+$" required>Hz</div>`;
+                            if(ocs == 1){
+                                stop();
+                                setTimeout(function() {
+                                    console.log('Waiting time: 100ms');
+                                },100)
+                                start(check);
+                            }else{
+                                document.getElementById('ctrl').innerHTML = `<button onclick="javascript:start(${hzv.value});" class="ctrlbtn"><span class="play">▶</span>Start</button>`;
+                            }
+                        }
+                    }, 10);
+                }catch(e){
+                    alert(e);
+                }
+            }
+            window.addEventListener('resize', canvasResize);
+            function canvasResize(){
+                let canvas2 = document.getElementById('waveform');
+                canvas2.style.width = window.innerWidth + "px";
+            }
+            function draw(){
+                try{
+                    cwidth = document.getElementById('waveform').width;
+                    cheight = document.getElementById('waveform').height;
+                    ana.getByteTimeDomainData(anadataArray);
+                    drawcanvasCtx.fillStyle = "rgba(0 0 0 0)";
+                    drawcanvasCtx.fillRect(0, 0, cwidth, cheight);
+                    drawcanvasCtx.lineWidth = 1.5;
+                    drawcanvasCtx.strokeStyle = "rgba(0 255 0)";
+                    drawcanvasCtx.beginPath();
+                    const sliceWidth = cwidth / anabufferLength;
+                    let x = 0;
+                    for (let i = 0; i < anabufferLength; i++) {
+                        const v = anadataArray[i] / 128.0;
+                        const y = v * (cheight/2);
+                        if (i === 0) {
+                            drawcanvasCtx.moveTo(x, y);
+                        }else {
+                            drawcanvasCtx.lineTo(x, y);
+                        }
+                        x += sliceWidth;
+                    }
+                    drawcanvasCtx.lineTo(cwidth, cheight/6);
+                    drawcanvasCtx.stroke();
+                }catch(e){
+                    return;
+                }
+            }
+            setInterval(draw, 70);
+        </script>
+    </head>
+    <body>
+        <canvas id="waveform" width="1024" height="256"></canvas>
+        <div class="title">Frequency Generator</div>
+        <select id="type" name="type">
+            <option value="sine">sine</option>
+            <option value="square">square</option>
+            <option value="sawtooth">sawtooth</option>
+            <option value="triangle">triangle</option>
+        </select>
+        <div id="ctrl"></div>
+        <div class="main">
+            <button onclick="javascript:apply();" class="btnapply">Apply</button>
+            <input type="hidden" id="ocs" value="0">
+            <div id="hzd"></div>
+        </div>
+    </body>
+</html>
