@@ -4,7 +4,7 @@ const BrowserWindow = electron.BrowserWindow;
 
 let mainWindow = null;
 app.on('ready', () => {
-    mainWindow = new BrowserWindow({width: 800, height: 600, minWidth: 800, minHeight: 600, autoHideMenuBar: true});
+    mainWindow = new BrowserWindow({width: 800, height: 600, minWidth: 800, minHeight: 600, autoHideMenuBar: true, webPreferences: {devTools: false}});
 
     let path = 'file://' + __dirname + '/index.html';
     mainWindow.loadURL(path);
